@@ -1,5 +1,6 @@
 """Backend for OpenAI API."""
 
+from asyncio import subprocess
 import json
 import logging
 import os
@@ -40,11 +41,11 @@ def get_docker_host_ip() -> str:
       3. host.docker.internal (Docker Desktop / macOS fallback)
       4. 172.17.0.1 (hard fallback for standard Linux bridge)
     """
-    # 1. Explicit override wins
-    explicit = os.environ.get("DOCKER_HOST_IP", "").strip()
-    if explicit:
-        logger.info(f"Docker host IP from env DOCKER_HOST_IP: {explicit}")
-        return explicit
+    # # 1. Explicit override wins
+    # explicit = os.environ.get("DOCKER_HOST_IP", "").strip()
+    # if explicit:
+    #     logger.info(f"Docker host IP from env DOCKER_HOST_IP: {explicit}")
+    #     return explicit
 
     # 2. Read default gateway from /proc/net/route (Linux only)
     try:
@@ -84,7 +85,8 @@ def get_docker_host_ip() -> str:
 def _setup_openai_client():
     global _client
     docker_host_ip = get_docker_host_ip()
-
+    a = subprocess.run(["curl", f"http://{docker_host_ip}:8000/v1/models"], capture_output=True, text=True)
+    logger.info(f"curl result: {a.stdout}")
     logger.info(f"Resolved Docker host IP as: {docker_host_ip}")
     _client = openai.OpenAI(max_retries=0, base_url=f'http://{docker_host_ip}:8000/v1', api_key="testkey")
 
