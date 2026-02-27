@@ -29,92 +29,40 @@ OPENAI_TIMEOUT_EXCEPTIONS = (
     openai.InternalServerError,
 )
 
-
-def get_docker_host_ip() -> str:
-    """
-    Resolve the Docker host gateway IP (i.e. the host machine's IP as seen from
-    inside a Linux bridge-networked container).
-
-    Resolution order:
-      1. DOCKER_HOST_IP env var (injected by run_agent.py or manually)
-      2. /proc/net/route default gateway (most reliable on Linux containers)
-      3. host.docker.internal (Docker Desktop / macOS fallback)
-      4. 172.0.0.1 (hard fallback for standard Linux bridge)
-    """
-    # 1. Explicit override wins
-    explicit = os.environ.get("DOCKER_HOST_IP", "").strip()
-    if explicit:
-        logger.info(f"Docker host IP from env DOCKER_HOST_IP: {explicit}")
-        return explicit
-
-    # 2. Read default gateway from /proc/net/route (Linux only)
-    try:
-        with open("/proc/net/route") as f:
-            for line in f.readlines()[1:]:          # skip header
-                parts = line.strip().split()
-                if len(parts) < 3:
-                    continue
-                destination = parts[1]
-                gateway_hex = parts[2]
-                flags = int(parts[3], 16)
-                # 0x0002 = RTF_GATEWAY, 0x0001 = RTF_UP
-                # destination == "00000000" means the default route
-                if destination == "00000000" and (flags & 0x0003) == 0x0003:
-                    # /proc/net/route stores IPs in little-endian hex
-                    gateway_ip = socket.inet_ntoa(
-                        struct.pack("<I", int(gateway_hex, 16))
-                    )
-                    logger.info(f"Docker host IP from /proc/net/route gateway: {gateway_ip}")
-                    return gateway_ip
-    except Exception as e:
-        logger.warning(f"Could not read /proc/net/route: {e}")
-
-    # 3. Docker Desktop / macOS
-    try:
-        resolved = socket.gethostbyname("host.docker.internal")
-        logger.info(f"Docker host IP from host.docker.internal: {resolved}")
-        return resolved
-    except Exception:
-        pass
-
-    # 4. Standard Linux bridge hard fallback
-    logger.warning("Falling back to hard-coded Docker bridge IP: 172.0.0.1")
-    return "127.0.0.0"
-
 @once
 def _setup_openai_client():
     global _client
-    docker_host_ip = get_docker_host_ip()
-    try:
-        a = subprocess.run(
-            ["curl", f"http://host.docker.internal:8000/v1/models"],
-            capture_output=True,
-            timeout=15,
-            text=True,
-        )
-        logger.info(f"1curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
-        try:
-            a = subprocess.run(
-            ["curl", f"http://0.0.0.0:8000/v1/models"],
-            capture_output=True,
-            timeout=15,
-            text=True,
-            )
-            logger.info(f"2curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
-            try:
-                a = subprocess.run(
-                ["curl", f"http://{docker_host_ip}:8000/v1/models"],
-                capture_output=True,
-                timeout=15,
-                text=True,
-                )
-                logger.info(f"3curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
-            except:
-                pass
-        except:
-            pass
-    except:
-        pass
+    # docker_host_ip = get_docker_host_ip()
+    # try:
+    #     a = subprocess.run(
+    #         ["curl", f"http://host.docker.internal:8000/v1/models"],
+    #         capture_output=True,
+    #         timeout=15,
+    #         text=True,
+    #     )
+    #     logger.info(f"1curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
+    #     try:
+    #         a = subprocess.run(
+    #         ["curl", f"http://0.0.0.0:8000/v1/models"],
+    #         capture_output=True,
+    #         timeout=15,
+    #         text=True,
+    #         )
+    #         logger.info(f"2curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
+    #         try:
+    #             a = subprocess.run(
+    #             ["curl", f"http://{docker_host_ip}:8000/v1/models"],
+    #             capture_output=True,
+    #             timeout=15,
+    #             text=True,
+    #             )
+    #             logger.info(f"3curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
+    #         except:
+    #             pass
+    #     except:
+    #         pass
+    # except:
+    #     pass
     # # logger.info(f"Resolved Docker host IP as: {docker_host_ip}")
     _client = openai.OpenAI(max_retries=0, base_url=f'http://host.docker.internal:8000/v1', api_key="testkey")
 
