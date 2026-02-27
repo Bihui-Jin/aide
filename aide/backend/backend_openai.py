@@ -84,16 +84,16 @@ def get_docker_host_ip() -> str:
 @once
 def _setup_openai_client():
     global _client
-    # docker_host_ip = get_docker_host_ip()
+    docker_host_ip = get_docker_host_ip()
     a = subprocess.run(
-        ["curl", f"http://localhost:8000/v1/models"],
+        ["curl", f"http://{docker_host_ip}:8000/v1/models"],
         capture_output=True,
         timeout=15,
         text=True,
     )
     logger.info(f"curl rc={a.returncode}, out={a.stdout[:200]}, err={a.stderr[:200]}")
     # logger.info(f"Resolved Docker host IP as: {docker_host_ip}")
-    _client = openai.OpenAI(max_retries=0, base_url=f'http://localhost:8000/v1', api_key="testkey")
+    _client = openai.OpenAI(max_retries=0, base_url=f'http://{docker_host_ip}:8000/v1', api_key="testkey")
 
 
 
