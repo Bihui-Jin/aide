@@ -39,13 +39,13 @@ def get_docker_host_ip() -> str:
       1. DOCKER_HOST_IP env var (injected by run_agent.py or manually)
       2. /proc/net/route default gateway (most reliable on Linux containers)
       3. host.docker.internal (Docker Desktop / macOS fallback)
-      4. 172.17.0.1 (hard fallback for standard Linux bridge)
+      4. 172.0.0.1 (hard fallback for standard Linux bridge)
     """
-    # # 1. Explicit override wins
-    # explicit = os.environ.get("DOCKER_HOST_IP", "").strip()
-    # if explicit:
-    #     logger.info(f"Docker host IP from env DOCKER_HOST_IP: {explicit}")
-    #     return explicit
+    # 1. Explicit override wins
+    explicit = os.environ.get("DOCKER_HOST_IP", "").strip()
+    if explicit:
+        logger.info(f"Docker host IP from env DOCKER_HOST_IP: {explicit}")
+        return explicit
 
     # 2. Read default gateway from /proc/net/route (Linux only)
     try:
@@ -78,8 +78,8 @@ def get_docker_host_ip() -> str:
         pass
 
     # 4. Standard Linux bridge hard fallback
-    logger.warning("Falling back to hard-coded Docker bridge IP: 172.17.0.1")
-    return "172.17.0.1"
+    logger.warning("Falling back to hard-coded Docker bridge IP: 172.0.0.1")
+    return "172.0.0.1"
 
 @once
 def _setup_openai_client():
