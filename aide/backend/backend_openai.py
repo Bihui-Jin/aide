@@ -2,6 +2,7 @@
 
 import json
 import logging
+import socket
 import time
 
 from aide.backend.utils import (
@@ -26,10 +27,27 @@ OPENAI_TIMEOUT_EXCEPTIONS = (
 )
 
 
+def get_docker_host_ip() -> str:
+    """
+    Resolve the IP of the Docker host as seen from inside a container.
+    On Linux with bridge networking this is typically the docker0 gateway (172.17.0.1).
+    Falls back to host.docker.internal for Docker Desktop environments.
+    """
+    try:
+        # Connect a UDP socket to force OS to choose the outbound interface toward the Docker bridge
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "host.docker.internal"  # fallback for Docker Desktop / macOS
+
 @once
 def _setup_openai_client():
     global _client
-    _client = openai.OpenAI(max_retries=0, base_url='http://localhost:8000/v1', api_key="testkey")
+    docker_host_ip = get_docker_host_ip()
+    _client = openai.OpenAI(max_retries=0, base_url=f'http://{docker_host_ip}:8000/v1', api_key="testkey")
 
 
 
