@@ -86,7 +86,7 @@ def _setup_openai_client():
     global _client
     docker_host_ip = get_docker_host_ip()
     a = subprocess.run(
-        ["curl", f"http://{docker_host_ip}:8000/v1/models"],
+        ["curl", f"http://dockerhost:8000/v1/models"],
         capture_output=True,
         timeout=15,
         text=True,
